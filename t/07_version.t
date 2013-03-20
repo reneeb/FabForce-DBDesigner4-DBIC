@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 7;
+use Test::More tests => 9;
 use FindBin ();
 
 BEGIN {
@@ -36,22 +36,22 @@ ok( -e $subpath . '/DBIC_Schema/Result/Gefa_User.pm' );
 ok( -e $subpath . '/DBIC_Schema/Result/UserRole.pm' );
 ok( -e $subpath . '/DBIC_Schema/Result/Role.pm' );
 
-my $schema = $subpath . '/DBIC_Schema.pm';
+my $lib_path = _untaint_path($output_path);
 
 my $version;
 eval {
-    eval "use lib '$output_path'";
-    require $schema;
+    eval "use lib '$lib_path'";
+    require MyApp::DB::DBIC_Schema;
     $version = MyApp::DB::DBIC_Schema->VERSION;
-};
+} or diag $@;
 is $version, 0.01, 'check version';
 
 $foo->create_schema;
 eval{
-    delete $INC{$schema};
-    require $schema;
+    delete $INC{"MyApp/DB/DBIC_Schema.pm"};
+    require MyApp::DB::DBIC_Schema;
     $version = MyApp::DB::DBIC_Schema->VERSION;
-};
+} or diag $@;
 is $version, 0.02, 'check version 0.02';
 
 eval{

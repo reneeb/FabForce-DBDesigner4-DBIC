@@ -326,6 +326,13 @@ sub _get_classes{
     return @{ $self->{_classes} };
 }
 
+sub _version{
+    my ($self,$file) = @_;
+    
+    $self->{_version} = $version if defined $version;
+    return $self->{_version};
+}
+
 sub _schema{
     my ($self,$name) = @_;
     
@@ -396,12 +403,15 @@ sub _class_template{
     my $column_string = join "\n", map{ "    " . $_ }@columns;
     
     my $primary_key   = join " ", $table->key;
+    my $version       = $self->_version;
     
     my $template = qq~package $package;
     
 use strict;
 use warnings;
 use base qw(DBIx::Class);
+
+our \$VERSION = $version;
 
 __PACKAGE__->load_components( qw/PK::Auto Core/ );
 __PACKAGE__->table( '$name' );
@@ -444,7 +454,7 @@ sub _main_template{
 
     my $version;
     eval {
-        require $namespace;
+        eval "require $namespace";
         $version = $namespace->VERSION()
     };
 
@@ -453,6 +463,8 @@ sub _main_template{
     }
 
     $version ||= '0.01';
+
+    $self->_version( $version );
        
     my $template = qq~package $namespace;
 
@@ -466,10 +478,6 @@ __PACKAGE__->load_namespaces;
 
     return $namespace, $template;
 }
-
-=head1 AUTHOR
-
-Renee Baecker, C<< <module at renee-baecker.de> >>
 
 =head1 BUGS
 

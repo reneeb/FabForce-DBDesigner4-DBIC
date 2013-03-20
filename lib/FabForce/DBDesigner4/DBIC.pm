@@ -327,7 +327,7 @@ sub _get_classes{
 }
 
 sub _version{
-    my ($self,$file) = @_;
+    my ($self,$version) = @_;
     
     $self->{_version} = $version if defined $version;
     return $self->{_version};

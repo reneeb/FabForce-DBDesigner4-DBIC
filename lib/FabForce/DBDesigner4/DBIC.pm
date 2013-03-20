@@ -6,17 +6,9 @@ use Carp;
 use File::Spec;
 use FabForce::DBDesigner4;
 
-=head1 NAME
+# ABSTRACT: create DBIC scheme for DBDesigner4 xml file
 
-FabForce::DBDesigner4::DBIC - create DBIC scheme for DBDesigner4 xml file
-
-=head1 VERSION
-
-Version 0.0802
-
-=cut
-
-our $VERSION = '0.0802';
+our $VERSION = '0.900';
 
 =head1 SYNOPSIS
 
@@ -25,6 +17,7 @@ our $VERSION = '0.0802';
     my $foo = FabForce::DBDesigner4::DBIC->new();
     $foo->output_path( $some_path );
     $foo->namespace( 'MyApp::DB' );
+    $foo->version_add( 0.01 );
     $foo->create_schema( $xml_document );
 
 =head1 METHODS
@@ -53,6 +46,7 @@ sub new {
     $self->input_file( $args{input_file} );
     $self->namespace( $args{namespace} );
     $self->schema_name( $args{schema_name} );
+    $self->version_add( $args{version_add} );
     
     $self->prefix( 
         'belongs_to'   => '',
@@ -95,6 +89,23 @@ sub input_file{
     
     $self->{_input_file} = $file if defined $file;
     return $self->{_input_file};
+}
+
+=head2 version_add
+
+The files should be versioned (e.g. to deploy the DB via C<DBIx::Class::DeploymentHandler>). On the first run 
+the version is set to "0.01". When the schema file already exists, the version is increased by the value
+of C<version_add> (default: 0.01)
+
+  $foo->version_add( 0.001 );
+
+=cut
+
+sub version_add{
+    my ($self,$inc) = @_;
+    
+    $self->{_version_add} = $inc if defined $inc;
+    return $self->{_version_add};
 }
 
 =head2 create_schema
@@ -430,10 +441,24 @@ sub _main_template{
     
     my $namespace  = $self->namespace . '::' . $schema_name;
        $namespace  =~ s/^:://;
+
+    my $version;
+    eval {
+        require $namespace;
+        $version = $namespace->VERSION()
+    };
+
+    if ( $version ) {
+        $version += ( $self->version_add || 0.01 );
+    }
+
+    $version ||= '0.01';
        
     my $template = qq~package $namespace;
 
 use base qw/DBIx::Class::Schema/;
+
+our \$VERSION = $version;
 
 __PACKAGE__->load_namespaces;
 
@@ -483,13 +508,6 @@ L<http://search.cpan.org/dist/FabForce::DBDesigner4::DBIC>
 =back
 
 =head1 ACKNOWLEDGEMENTS
-
-=head1 COPYRIGHT & LICENSE
-
-Copyright 2007 Renee Baecker, all rights reserved.
-
-This program is free software; you can redistribute it and/or modify it
-under the same terms as Perl itself.
 
 =cut
 

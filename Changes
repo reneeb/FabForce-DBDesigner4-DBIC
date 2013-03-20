@@ -1,5 +1,7 @@
 Revision history for FabForce::DBDesigner4::DBIC
 
+0.0803  minor bugfixes in Testscripts
+
 0.08    Sun Aug 30 2009
         + files are now in Result::* namespace
 

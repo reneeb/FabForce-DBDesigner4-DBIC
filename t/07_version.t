@@ -36,6 +36,24 @@ ok( -e $subpath . '/DBIC_Schema/Result/Gefa_User.pm' );
 ok( -e $subpath . '/DBIC_Schema/Result/UserRole.pm' );
 ok( -e $subpath . '/DBIC_Schema/Result/Role.pm' );
 
+my $schema = $subpath . '/DBIC_Schema.pm';
+
+my $version;
+eval {
+    eval "use lib '$output_path'";
+    require $schema;
+    $version = MyApp::DB::DBIC_Schema->VERSION;
+};
+is $version, 0.01, 'check version';
+
+$foo->create_schema;
+eval{
+    delete $INC{$schema};
+    require $schema;
+    $version = MyApp::DB::DBIC_Schema->VERSION;
+};
+is $version, 0.02, 'check version 0.02';
+
 eval{
     rmtree( $output_path );
     $output_path = _untaint_path( $output_path );

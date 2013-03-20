@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 10;
+use Test::More tests => 4;
 use FindBin ();
 
 BEGIN {
@@ -25,43 +25,32 @@ if( -e $output_path ){
 $foo->input_file( $file );
 $foo->namespace( $namespace );
 $foo->output_path( $output_path );
-$foo->create_scheme;
+$foo->column_details( 1 );
+$foo->create_schema;
 
 (my $path = $namespace) =~ s!::!/!;
 
 my $subpath = $output_path . '/' . $path;
-ok( -e $subpath , 'Path created' );
-ok( -e $subpath . '/DBIC_Schema.pm' );
-ok( -e $subpath . '/DBIC_Schema/Result/Gefa_User.pm' );
-ok( -e $subpath . '/DBIC_Schema/Result/UserRole.pm' );
-ok( -e $subpath . '/DBIC_Schema/Result/Role.pm' );
+my $role_class = $subpath . '/DBIC_Schema/Result/Role.pm';
 
-my $lib_path = _untaint_path($output_path);
+ok -e $role_class;
 
-my $version;
-eval {
-    eval "use lib '$lib_path'";
-    require MyApp::DB::DBIC_Schema;
-    $version = MyApp::DB::DBIC_Schema->VERSION;
-} or diag $@;
-is $version, 0.01, 'check version';
+my $check = q~__PACKAGE__->add_columns(
+    RoleID => {
+        data_type => 'INTEGER',
+        is_auto_increment => 1,
+    },
+    Rolename => {
+        data_type => 'VARCHAR',
+        is_nullable => 1,
+        size => 255,
+    },
 
-$foo->create_schema;
-eval{
-    delete $INC{"MyApp/DB/DBIC_Schema.pm"};
-    require MyApp::DB::DBIC_Schema;
-    $version = MyApp::DB::DBIC_Schema->VERSION;
-} or diag $@;
-is $version, 0.02, 'check version 0.02';
+);~;
 
-$foo->version_add( 1 );
-$foo->create_schema;
-eval{
-    delete $INC{"MyApp/DB/DBIC_Schema.pm"};
-    require MyApp::DB::DBIC_Schema;
-    $version = MyApp::DB::DBIC_Schema->VERSION;
-} or diag $@;
-is $version, 1.02, 'check version 1.02';
+my $content = do{ local (@ARGV, $/) = $role_class; <> };
+like $content, qr/\Q$check\E/;
+
 
 eval{
     rmtree( $output_path );

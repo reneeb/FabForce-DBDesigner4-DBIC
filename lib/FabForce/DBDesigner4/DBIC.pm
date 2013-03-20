@@ -8,7 +8,7 @@ use FabForce::DBDesigner4;
 
 # ABSTRACT: create DBIC scheme for DBDesigner4 xml file
 
-our $VERSION = '0.09';
+our $VERSION = '0.10';
 
 =head1 SYNOPSIS
 
@@ -31,7 +31,9 @@ to new (all parameters are optional)
     output_path => '/path/to/dir',
     input_file  => '/path/to/dbdesigner.file',
     namespace   => 'MyApp::Database',
+    version_add => 0.001,
     schema_name => 'MySchema',
+    column_details => 1,
   );
   
 =cut
@@ -47,6 +49,7 @@ sub new {
     $self->namespace( $args{namespace} );
     $self->schema_name( $args{schema_name} );
     $self->version_add( $args{version_add} );
+    $self->column_details( $args{column_details} );
     
     $self->prefix( 
         'belongs_to'   => '',
@@ -89,6 +92,52 @@ sub input_file{
     
     $self->{_input_file} = $file if defined $file;
     return $self->{_input_file};
+}
+
+=head2 column_details
+
+If enabled, the column definitions are more detailed. Default: disabled.
+
+  $foo->column_details( 1 );
+
+Standard (excerpt from Result classes):
+
+  __PACKAGE__->add_columns( qw/
+    cert_id
+    register_nr
+    state
+  );
+
+With enabled column details:
+
+  __PACKAGE__->add_columns(
+    cert_id => {
+      data_type         => 'integer',
+      is_nullable       => 0,
+      is_auto_increment => 1,
+    },
+    register_nr => {
+      data_type   => 'integer',
+      is_nullable => 0,
+    },
+    state => {
+      data_type     => 'varchar',
+      size          => 1,
+      is_nullable   => 0,
+      default_value => 'done',
+    },
+  );
+
+This is useful when you use L<DBIx::Class::DeploymentHandler> to deploy the columns
+correctly.
+
+=cut
+
+sub column_details {
+    my ($self,$bool) = @_;
+    
+    $self->{_column_details} = $bool if defined $bool;
+    return $self->{_column_details};
 }
 
 =head2 version_add
@@ -400,8 +449,41 @@ sub _class_template{
     }
     
     my @columns = $table->column_names;
-    my $column_string = join "\n", map{ "    " . $_ }@columns;
-    
+    my $column_string = '';
+
+    if ( !$self->column_details ) {
+        $column_string = "qw/\n" . join "\n", map{ "    " . $_ }@columns, "    /";
+    }
+    else {
+        my @columns = @{ $table->column_details || [] };
+
+        for my $column ( @columns ) {
+            $column->{DefaultValue} =~ s/'/\\'/g;
+
+            if ( $column->{DataType} =~ /char/i && $column->{Width} <= 0 ) {
+                $column->{Width} = 255;
+            }
+
+            my @options;
+
+            my $name          = $column->{ColName};
+
+            push @options, "data_type => '" . $column->{DataType} . "',";
+            push @options, "is_auto_increment => 1,"                             if $column->{AutoInc};
+            push @options, "is_nullable => 1,"                                   if !$column->{NotNull};
+            push @options, "size => " . $column->{Width} . ","                   if $column->{Width} > 0; 
+            push @options, "default_value => '" . $column->{DefaultValue} . "'," if $column->{DefaultValue};
+
+            my $option_string = join "\n        ", @options;
+
+            $column_string .= <<"            COLUMN";
+    $name => {
+        $option_string
+    },
+            COLUMN
+        }
+    }
+
     my $primary_key   = join " ", $table->key;
     my $version       = $self->_version;
     
@@ -415,9 +497,9 @@ our \$VERSION = $version;
 
 __PACKAGE__->load_components( qw/PK::Auto Core/ );
 __PACKAGE__->table( '$name' );
-__PACKAGE__->add_columns( qw/
+__PACKAGE__->add_columns(
 $column_string
-/);
+);
 __PACKAGE__->set_primary_key( qw/ $primary_key / );
 
 $has_many

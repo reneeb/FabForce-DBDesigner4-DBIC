@@ -8,7 +8,7 @@ use FabForce::DBDesigner4;
 
 # ABSTRACT: create DBIC scheme for DBDesigner4 xml file
 
-our $VERSION = '0.10';
+our $VERSION = '0.11';
 
 =head1 SYNOPSIS
 

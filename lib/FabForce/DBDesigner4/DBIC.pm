@@ -34,7 +34,11 @@ to new (all parameters are optional)
     version_add => 0.001,
     schema_name => 'MySchema',
     column_details => 1,
+    use_fake_dbic  => 1, # default 0.
   );
+
+C<use_fake_dbic> is helpful when C<DBIx::Class> is not installed on the
+machine where you use this module.
   
 =cut
 
@@ -50,6 +54,10 @@ sub new {
     $self->schema_name( $args{schema_name} );
     $self->version_add( $args{version_add} );
     $self->column_details( $args{column_details} );
+
+    if ( $args{use_fake_dbic} ) {
+        require FabForce::DBDesigner4::DBIC::FakeDBIC;
+    }
     
     $self->prefix( 
         'belongs_to'   => '',

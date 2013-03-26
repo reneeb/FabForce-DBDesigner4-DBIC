@@ -1,5 +1,8 @@
 Revision history for FabForce::DBDesigner4::DBIC
 
+0.13    Tue Mar 26 2013
+        + fix distro
+
 0.12    Tue Mar 26 2013
         + fix test failures 
 

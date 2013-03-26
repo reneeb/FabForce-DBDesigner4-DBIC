@@ -55,7 +55,7 @@ sub new {
     $self->version_add( $args{version_add} );
     $self->column_details( $args{column_details} );
 
-    if ( $args{use_fake_dbic} ) {
+    if ( $args{use_fake_dbic} || !eval{ require DBIx::Class } ) {
         require FabForce::DBDesigner4::DBIC::FakeDBIC;
     }
     

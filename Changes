@@ -3,6 +3,9 @@ Revision history for FabForce::DBDesigner4::DBIC
 0.12    Tue Mar 26 2013
         + fix test failures 
 
+0.11    Sun Mar 24 2013
+        + fix test failures (fake existance of DBIx::Class)
+
 0.10    Wed Mar 20 2013
         + add column_details
 
